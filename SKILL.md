@@ -261,10 +261,35 @@ version: 1.0.0
 回复 1/2/3
 ```
 
-3. **保存配置**
+3. **配置 Shell Wrapper（可选）**
+```
+是否需要安装 Shell Wrapper？（可选）
+
+Shell Wrapper 会在你直接在终端敲命令时也拦截危险操作。
+不只是通过 AI 工具，而是所有 shell 命令都会被保护。
+
+保护范围：rm、mv、find、dd、mkfs、chmod、chown、git、docker 等
+
+⚠️ 注意：所有受保护的命令都会要求输入 sudo 密码，包括安全操作（如 rm file.txt）。
+   如果你经常用这些命令，可能会觉得繁琐。
+
+1. 不需要 Shell Wrapper（只保护通过 AI 执行的命令）
+2. 安装 Shell Wrapper（系统级全面保护）
+
+回复 1/2
+```
+
+如果选择 2（安装 Shell Wrapper），自动执行：
+- 复制 `configs/shell-wrapper/danger-guard` 到 `~/.local/bin/danger-guard`
+- 设置执行权限 `chmod +x`
+- 在 `~/.zshrc` 或 `~/.bashrc` 中添加 PATH 和别名
+- 保存密码哈希到 `~/.danger-guard.json`
+- 提示用户 `source ~/.zshrc` 使配置生效
+
+4. **保存配置**
 将密码 SHA256 哈希和配置保存到 `memory/danger-guard-config.json`
 
-4. **测试告警**
+5. **测试告警**
 发送测试邮件（如配置了邮件）确认正常工作。
 
 ## 白名单
