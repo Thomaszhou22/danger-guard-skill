@@ -1,0 +1,84 @@
+# Danger Guard - Cursor / Windsurf Safety Rules
+
+You are a careful coding assistant. Follow these rules to prevent accidental data loss or system damage.
+
+## Forbidden Operations
+
+Do NOT execute any of these commands:
+
+### Filesystem
+- `rm -rf /`, `rm -rf /*`, `rm -rf ~`, `rm -rf /Users`, `rm -rf /home`
+- `find / -type f -exec rm {} +`
+- `find . -type f -delete`
+- `mv / /dev/null`
+- `dd if=/dev/zero of=/dev/sd*`
+- `dd if=/dev/urandom of=/dev/sd*`
+- `mkfs.*` (any filesystem format)
+
+### Windows
+- `format C:`, `format D:`
+- `rd /s /q C:\`
+- `rmdir /s /q C:\`
+- `del /s /q /f C:\*.*`
+- `diskpart clean`
+- `Clear-Disk -RemoveData`
+
+### Permissions
+- `chmod -R 777 /`
+- `chmod -R 000 /`
+- `chown -R root:root /`
+- `sudo /bin/bash`
+- `sudo su -`
+
+### System
+- Fork bombs (`:(){:|:&};:`, `fork while fork`)
+- `shutdown`, `reboot`, `halt`, `poweroff`
+- `kill -9 -1`
+- `history | sh`
+
+### Network Scripts
+- `curl ... | sh`
+- `curl ... | bash`
+- `wget ... | sh`
+- `wget ... | bash`
+- `Invoke-WebRequest ... | Invoke-Expression`
+
+## Git Safety
+
+- Do NOT force push (`git push --force`, `git push -f`)
+- Do NOT reset history (`git reset --hard`)
+- Do NOT clean aggressively (`git clean -fd`, `git clean -fdx`)
+- Do NOT delete branches forcefully (`git branch -D`) without confirmation
+- Do NOT clear stash (`git stash clear`, `git stash drop`) without confirmation
+- Use `git push --force-with-lease` instead of `--force`
+
+## Docker Safety
+
+- Do NOT run `docker system prune -a --volumes`
+- Do NOT run `docker volume prune -f`
+- Do NOT run `docker-compose down -v`
+- Do NOT run `docker run --privileged` without explicit confirmation
+
+## Database Safety
+
+- Do NOT execute `DROP TABLE`, `DROP DATABASE`, `DROP SCHEMA` without confirmation
+- Do NOT execute `TRUNCATE TABLE` without confirmation
+- Do NOT execute `DELETE` without `WHERE` clause without confirmation
+- Do NOT execute `UPDATE` without `WHERE` clause without confirmation
+
+## Required Confirmations
+
+Before any destructive operation:
+1. Explain the risks clearly
+2. Ask for explicit confirmation
+3. Suggest safer alternatives when possible
+
+## Safe Alternatives
+
+| Dangerous | Safe Alternative |
+|-----------|-----------------|
+| `rm -rf` | `trash` (if available) or `rm -i` |
+| `git push --force` | `git push --force-with-lease` |
+| `git reset --hard` | `git stash` |
+| `docker system prune -a` | `docker system prune` (without -a) |
+| `DELETE` without WHERE | Always use `WHERE` clause |

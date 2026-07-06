@@ -1,0 +1,177 @@
+#!/bin/bash
+# Danger Guard - Shell Wrapper
+# 拦截危险命令，要求 sudo 密码确认
+# 
+# 安装方法：
+# 1. chmod +x ~/.local/bin/danger-guard
+# 2. 在 ~/.bashrc 或 ~/.zshrc 中添加：alias rm='danger-guard rm'
+#    或其他需要保护的命令别名
+
+DANGER_GUARD_CONFIG="${HOME}/.danger-guard.json"
+DANGER_GUARD_LOG="${HOME}/.danger-guard.log"
+
+# 颜色定义
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+# 危险命令模式匹配
+DANGEROUS_PATTERNS=(
+    "rm -rf /"
+    "rm -rf /*"
+    "rm -rf ~"
+    "rm -rf /Users"
+    "rm -rf /home"
+    "find.*-exec rm"
+    "find.*-delete"
+    "mv.*\/dev\/null"
+    "dd if=\/dev\/zero of=\/dev\/sd"
+    "dd if=\/dev\/urandom of=\/dev\/sd"
+    "mkfs\."
+    "chmod -R 777 /"
+    "chmod -R 000 /"
+    "chown -R root"
+    "sudo /bin/bash"
+    "sudo su -"
+    ":\(\)\{:|:&\};:"
+    "fork while fork"
+    "shutdown"
+    "reboot"
+    "halt"
+    "poweroff"
+    "kill -9 -1"
+    "history | sh"
+    "curl.*| sh"
+    "curl.*| bash"
+    "wget.*| sh"
+    "wget.*| bash"
+    "format C:"
+    "format D:"
+    "rd /s /q C:\\"
+    "rmdir /s /q C:\\"
+    "del /s /q /f C:\\"
+    "diskpart clean"
+    "Clear-Disk"
+    "git push --force"
+    "git push -f"
+    "git reset --hard"
+    "git clean -fd"
+    "git clean -fdx"
+    "git branch -D"
+    "git stash drop"
+    "git stash clear"
+    "docker system prune -a"
+    "docker system prune --volumes"
+    "docker volume prune -f"
+    "docker-compose down -v"
+    "DROP TABLE"
+    "DROP DATABASE"
+    "TRUNCATE TABLE"
+)
+
+# 记录日志
+log_command() {
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local command="$1"
+    local blocked="$2"
+    echo "[$timestamp] command='$command' blocked=$blocked" >> "$DANGER_GUARD_LOG"
+}
+
+# 显示警告
+show_warning() {
+    echo -e "${RED}╔═══════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}║  🛡️  DANGER GUARD - 危险命令拦截                         ║${NC}"
+    echo -e "${RED}╚═══════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${YELLOW}检测到危险命令:${NC} $1"
+    echo ""
+    echo -e "${YELLOW}此命令可能导致:${NC}"
+    echo "  • 数据永久丢失"
+    echo "  • 系统无法启动"
+    echo "  • 文件无法恢复"
+    echo ""
+}
+
+# 验证 sudo 密码
+verify_sudo_password() {
+    local config_file="$DANGER_GUARD_CONFIG"
+    
+    if [ ! -f "$config_file" ]; then
+        echo -e "${RED}错误: 未找到 Danger Guard 配置文件${NC}"
+        echo "请先通过 OpenClaw 配置 Danger Guard"
+        return 1
+    fi
+    
+    # 读取存储的密码哈希
+    local stored_hash=$(jq -r '.sudo_hash' "$config_file")
+    
+    if [ -z "$stored_hash" ] || [ "$stored_hash" = "null" ]; then
+        echo -e "${RED}错误: 未配置 sudo 密码${NC}"
+        return 1
+    fi
+    
+    # 提示用户输入密码
+    echo -e "${YELLOW}请输入 sudo 密码以确认执行:${NC}"
+    read -s -p "密码: " input_password
+    echo ""
+    
+    # 计算输入密码的哈希
+    local input_hash=$(echo -n "$input_password" | shasum -a 256 | awk '{print $1}')
+    
+    # 验证
+    if [ "$input_hash" = "$stored_hash" ]; then
+        echo -e "${GREEN}✓ 密码验证通过${NC}"
+        return 0
+    else
+        echo -e "${RED}✗ 密码验证失败${NC}"
+        return 1
+    fi
+}
+
+# 主函数
+main() {
+    local command="$*"
+    
+    # 检查是否匹配危险模式
+    for pattern in "${DANGEROUS_PATTERNS[@]}"; do
+        if [[ "$command" =~ $pattern ]]; then
+            show_warning "$command"
+            log_command "$command" "true"
+            
+            # 尝试 3 次验证密码
+            local attempts=0
+            while [ $attempts -lt 3 ]; do
+                if verify_sudo_password; then
+                    echo ""
+                    echo -e "${GREEN}正在执行: $command${NC}"
+                    log_command "$command" "false (verified)"
+                    eval "$command"
+                    return $?
+                fi
+                attempts=$((attempts + 1))
+                if [ $attempts -lt 3 ]; then
+                    echo -e "${YELLOW}还有 $((3 - attempts)) 次机会${NC}"
+                fi
+            done
+            
+            echo ""
+            echo -e "${RED}❌ 密码验证失败 3 次，命令已拦截${NC}"
+            log_command "$command" "true (max attempts)"
+            
+            # 发送告警（如果配置了）
+            if command -v danger-guard-alert &> /dev/null; then
+                danger-guard-alert "dangerous_command_blocked" "$command"
+            fi
+            
+            return 1
+        fi
+    done
+    
+    # 非危险命令，直接执行
+    eval "$command"
+    return $?
+}
+
+# 执行
+main "$@"
