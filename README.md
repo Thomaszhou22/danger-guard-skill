@@ -58,10 +58,11 @@ cp -r danger-guard ~/.openclaw/skills/
 # 或你的 OpenClaw skills 目录
 ```
 
-### 2. 首次使用自动配置
+### 2. 首次使用自动配置（Onboarding）
 
-当 Danger Guard 首次激活时，会自动引导你配置：
+当 Danger Guard 首次激活时，会自动引导你完成配置：
 
+**第 1 步：检测系统 + 输入密码**
 ```
 🛡️ Danger Guard 首次配置
 
@@ -71,10 +72,43 @@ cp -r danger-guard ~/.openclaw/skills/
 密码 [你的开机密码]
 ```
 
-然后选择邮件告警方式（可选）：
+**第 2 步：配置邮件告警（可选）**
+```
+是否需要配置邮件告警？（可选）
+拦截危险命令时，除了飞书通知外，还会发邮件给你。
+
 1. 不需要邮件（只发飞书告警）
-2. 原生邮件（macOS 用 mail 命令）
-3. Resend API（需要 API Key）
+2. 原生邮件（macOS 用 mail 命令，Windows 用 PowerShell）
+3. Resend API（免费每月 3000 封，需要 API Key）
+
+回复 1/2/3
+```
+
+**第 3 步：配置 Shell Wrapper（可选）**
+```
+是否需要安装 Shell Wrapper？（可选）
+
+Shell Wrapper 会在你直接在终端敲命令时也拦截危险操作。
+不只是通过 AI 工具，而是所有 shell 命令都会被保护。
+
+保护范围：rm、mv、find、dd、mkfs、chmod、chown、git、docker 等
+
+⚠️ 注意：所有受保护的命令都会要求输入 sudo 密码，包括安全操作（如 rm file.txt）。
+   如果你经常用这些命令，可能会觉得繁琐。
+
+1. 不需要 Shell Wrapper（只保护通过 AI 执行的命令）
+2. 安装 Shell Wrapper（系统级全面保护）
+
+回复 1/2
+```
+
+**第 4 步：保存配置**
+- 密码转 SHA256 哈希存储
+- 写入 `memory/danger-guard-config.json`
+- 如选择 Shell Wrapper，自动安装到 `~/.local/bin/` 并配置 shell 别名
+
+**第 5 步：测试告警**
+- 如配置了邮件，发送测试邮件确认能收到
 
 ### 3. 配置文件位置
 
@@ -210,75 +244,110 @@ AI 启动紧急协议：
 
 ## 跨 AI 工具保护
 
-Danger Guard 不仅适用于 OpenClaw，还可以配置到其他 AI 编码工具：
+Danger Guard 提供 **5 种配置方案**，覆盖主流 AI 开发工具和系统级保护。所有配置文件都在 `configs/` 目录中。
 
-### Claude Code
+### 1. Claude Code (Anthropic CLI)
 
-在项目根目录创建 `.claude/settings.json`：
+**配置文件：**
+- `configs/claude-code/settings.json` - 70+ 条正则表达式拦截规则
+- `configs/claude-code/CLAUDE.md` - 安全规则说明
 
-```json
-{
-  "permissions": {
-    "deny": [
-      "Bash(rm -rf*)",
-      "Bash(format*)",
-      "Bash(dd if=*)",
-      "Bash(git push --force*)",
-      "Bash(git reset --hard*)"
-    ]
-  }
-}
-```
-
-### OpenAI Codex
-
-在 `AGENTS.md` 中添加：
-
-```markdown
-## Safety Rules
-- NEVER execute destructive commands: rm -rf, format, dd, mkfs
-- NEVER force push or reset git history
-- NEVER run docker prune operations
-```
-
-### Cursor / Windsurf
-
-在 `.cursorrules` 中添加：
-
-```markdown
-## Forbidden Operations
-- Do NOT execute: rm -rf, format, dd, mkfs
-- Do NOT force push to any branch
-- Do NOT reset git history (--hard)
-```
-
-详见 `SKILL.md` 完整配置指南。
-
-## 系统级保护（可选）
-
-如果你也想在终端直接执行命令时拦截，可以安装 Shell Wrapper：
-
+**安装：**
 ```bash
-# 创建目录
-mkdir -p ~/.local/bin
-
-# 下载 wrapper 脚本
-# （见 SKILL.md 中的完整脚本）
-
-# 添加执行权限
-chmod +x ~/.local/bin/danger-guard
-
-# 添加到 PATH
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-
-# 设置别名
-alias rm='danger-guard rm'
-alias git='danger-guard git'
-alias docker='danger-guard docker'
+mkdir -p .claude
+cp /path/to/danger-guard/configs/claude-code/settings.json .claude/settings.json
+cp /path/to/danger-guard/configs/claude-code/CLAUDE.md ./CLAUDE.md
 ```
 
-这样无论通过 AI 工具还是直接在终端执行，都会被拦截。
+**工作原理：** 使用 Claude Code 的 `permissions.deny` 功能，通过正则表达式匹配阻止危险命令执行。
+
+### 2. OpenAI Codex
+
+**配置文件：** `configs/codex/AGENTS.md`
+
+**安装：**
+```bash
+cp /path/to/danger-guard/configs/codex/AGENTS.md ./AGENTS.md
+```
+
+**工作原理：** Codex 会读取项目根目录的 `AGENTS.md`，遵循其中定义的安全规则。
+
+### 3. Cursor / Windsurf / GitHub Copilot
+
+**配置文件：** `configs/cursor/.cursorrules`
+
+**安装：**
+```bash
+cp /path/to/danger-guard/configs/cursor/.cursorrules ./.cursorrules
+```
+
+**工作原理：** 编辑器读取 `.cursorrules` 中的指令，拒绝执行禁止的操作。
+
+### 4. Shell Wrapper（系统级保护）
+
+**配置文件：** `configs/shell-wrapper/danger-guard`
+
+**安装：**（如果 onboarding 时选择安装，会自动完成以下步骤）
+```bash
+mkdir -p ~/.local/bin
+cp /path/to/danger-guard/configs/shell-wrapper/danger-guard ~/.local/bin/danger-guard
+chmod +x ~/.local/bin/danger-guard
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+echo 'alias rm="danger-guard rm"' >> ~/.zshrc
+echo 'alias git="danger-guard git"' >> ~/.zshrc
+echo 'alias docker="danger-guard docker"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+**工作原理：** 
+- Shell wrapper 拦截指定的命令（通过 alias）
+- 检查是否匹配危险模式
+- 如果匹配，要求输入 sudo 密码验证
+- 密码验证通过才执行命令
+
+**保护范围：** rm、mv、find、dd、mkfs、chmod、chown、shutdown、reboot、git、docker 等
+
+### 5. Git Hooks
+
+**配置文件：** `configs/git-hooks/pre-push`
+
+**安装：**
+```bash
+# 单个仓库
+cp /path/to/danger-guard/configs/git-hooks/pre-push .git/hooks/pre-push
+chmod +x .git/hooks/pre-push
+
+# 所有新仓库（Git 模板）
+mkdir -p ~/.git-templates/hooks
+cp /path/to/danger-guard/configs/git-hooks/pre-push ~/.git-templates/hooks/pre-push
+chmod +x ~/.git-templates/hooks/pre-push
+git config --global init.templatedir '~/.git-templates'
+```
+
+**工作原理：** Pre-push hook 在每次 push 前检查是否修改了远程历史（即 force push），如果是则拦截并提示。
+
+**完整安装指南：** 详见 `INSTALL.md`
+
+## 两层保护机制
+
+Danger Guard 提供**两层互补的保护**：
+
+| 保护层级 | 保护场景 | 配置方式 |
+|---------|---------|---------|
+| **OpenClaw Skill** | 拦截通过飞书发给 AI 的危险命令 | 自动激活，无需手动配置 |
+| **Shell Wrapper** | 拦截所有终端命令（包括 AI 工具、你自己敲的命令） | onboarding 时可选安装 |
+
+**为什么需要两层？**
+- OpenClaw Skill 只保护通过飞书发给 AI 的指令
+- Shell Wrapper 保护**所有**在终端执行的命令，包括：
+  - 你自己在终端敲的命令
+  - OpenClaw 执行的命令
+  - Cursor、Claude Code 等其他 AI 工具执行的命令
+
+**Shell Wrapper 的注意事项：**
+- 所有受保护的命令（rm、git、docker 等）都会要求输入 sudo 密码
+- 包括安全操作（如 `rm file.txt`），可能会觉得繁琐
+- 如果经常在终端操作，可以只装 OpenClaw Skill，不装 Shell Wrapper
 
 ## 安全性
 
@@ -290,16 +359,18 @@ alias docker='danger-guard docker'
 
 ### 保护范围
 
-- **OpenClaw Skill**: 拦截通过飞书发来的危险命令
-- **Shell Wrapper**: 拦截终端直接执行的危险命令（可选）
-- **AI 工具配置**: 拦截 Claude Code、Codex 等工具的危险命令
+- **OpenClaw Skill**: 拦截通过飞书发来的危险命令（聊天层）
+- **Shell Wrapper**: 拦截终端直接执行的危险命令（系统层）
+- **AI 工具配置**: 拦截 Claude Code、Codex、Cursor 等工具的危险命令（应用层）
+- **Git Hooks**: 拦截 force push 等危险 git 操作（版本控制层）
 
 ### 局限性
 
 - 只能拦截已知的危险命令模式
 - 无法拦截变体或混淆的命令
-- Shell Wrapper 需要用户主动设置别名
+- Shell Wrapper 会拦截所有受保护命令（包括安全操作），可能影响工作效率
 - 邮件告警依赖系统邮件配置或 Resend API
+- Git Hooks 需要为每个仓库单独安装，或配置 Git 模板
 
 ## 配置选项
 
@@ -375,6 +446,29 @@ alias docker='danger-guard docker'
 1. 检查 Skill 是否在 skills 目录中
 2. 重启 OpenClaw gateway
 3. 查看 OpenClaw 日志确认 Skill 加载
+
+## 项目结构
+
+```
+danger-guard/
+├── SKILL.md              # Skill 主文件（危险命令黑名单 + 拦截逻辑）
+├── README.md             # 项目说明文档
+├── INSTALL.md            # 详细安装指南
+├── configs/              # 跨 AI 工具配置文件
+│   ├── claude-code/      # Claude Code 配置
+│   │   ├── settings.json # 70+ 条拦截规则
+│   │   └── CLAUDE.md     # 安全规则说明
+│   ├── codex/            # OpenAI Codex 配置
+│   │   └── AGENTS.md     # Codex 安全指令
+│   ├── cursor/           # Cursor/Windsurf 配置
+│   │   └── .cursorrules  # 禁止操作列表
+│   ├── shell-wrapper/    # Shell Wrapper 脚本
+│   │   └── danger-guard  # 系统级拦截脚本
+│   └── git-hooks/        # Git Hooks
+│       └── pre-push      # 阻止 force push
+└── memory/               # 运行时配置（自动生成）
+    └── danger-guard-config.json
+```
 
 ## 开发
 
