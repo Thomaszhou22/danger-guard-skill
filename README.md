@@ -2,6 +2,12 @@
 
 AI agent safety shield. Intercepts dangerous commands before execution, requires password verification, and sends alerts when someone tries to destroy your system through a compromised account.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-compatible-blue)](https://openclaw.ai)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)](https://claude.ai)
+[![Cursor](https://img.shields.io/badge/Cursor-compatible-orange)](https://cursor.sh)
+[![Platform](https://img.shields.io/badge/platform-all%20agent%20platforms-green)](https://github.com/Thomaszhou22/danger-guard-skill)
+
 [中文文档](README-CN.md)
 
 ---

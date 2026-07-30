@@ -2,6 +2,12 @@
 
 AI 智能体安全防护。在执行前拦截危险命令，要求密码验证，当有人试图通过被盗账号破坏你的系统时发送告警。
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-compatible-blue)](https://openclaw.ai)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)](https://claude.ai)
+[![Cursor](https://img.shields.io/badge/Cursor-compatible-orange)](https://cursor.sh)
+[![Platform](https://img.shields.io/badge/platform-all%20agent%20platforms-green)](https://github.com/Thomaszhou22/danger-guard-skill)
+
 [English](README.md)
 
 ---
