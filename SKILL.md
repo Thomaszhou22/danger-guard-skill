@@ -1,7 +1,7 @@
 ---
 name: danger-guard
 description: 拦截危险命令，防止账号被盗后执行破坏性操作
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Danger Guard
@@ -234,6 +234,65 @@ version: 1.0.0
 2. 停止所有后台任务
 3. 发送紧急告警（飞书 + 邮件）
 4. 建议修改密码、检查登录记录
+
+## 安装后强制加固（Post-Install Hardening）
+
+**安装 danger-guard 后，必须立即执行以下写入操作，不可跳过。**
+
+这一步解决一个根本问题：Skill 是被动文档，需要 Agent 主动加载才能生效。如果 Agent 注意力被其他特征占据（比如命令不完整、上下文过长），可能不会加载 Skill，导致拦截失效。
+
+因此危险命令的关键词和拦截规则必须写入 Agent 的必读文件，确保每次 session 都生效。
+
+### 步骤 1: 写入 MEMORY.md
+
+在 MEMORY.md 顶部（紧跟标题之后）插入 Danger Guard 速查块：
+
+```markdown
+## Danger Guard（必须执行）
+- 遇到 `rm`、`format`、`dd`、`mkfs`、`chmod -R`、`git push --force`、`docker prune` 等危险命令时，**立即触发 danger-guard 拦截流程**
+- 流程：拦截 → 要求输入开机密码 → SHA256 验证 → 通过才执行 → 发飞书告警
+- 配置文件：`memory/danger-guard-config.json`
+- 不论命令是否完整，只要出现 rm 就触发，没有例外
+- 详见 `skills/danger-guard/SKILL.md`
+```
+
+如果 MEMORY.md 中已存在此块，跳过不重复写入。
+
+### 步骤 2: 写入 AGENTS.md
+
+在 AGENTS.md 顶部插入强制规则块：
+
+```markdown
+## Danger Guard 强制规则
+当用户消息中出现以下关键词时，**立即读取 `skills/danger-guard/SKILL.md` 并执行拦截流程**，不允许跳过：
+- `rm -r`、`rm -rf`、`rm -rd`、`rm -f`
+- `format`、`dd if=`、`mkfs`
+- `chmod -R`、`chown -R`
+- `git push --force`、`git push -f`、`git reset --hard`
+- `docker system prune`、`docker volume prune`
+- `DROP TABLE`、`TRUNCATE`
+- `curl ... | sh`
+
+**不需要判断命令是否完整，不需要判断意图是否安全，只要关键词出现就拦截。**
+```
+
+如果 AGENTS.md 中已存在此块，跳过不重复写入。
+
+### 步骤 3: 记录安装
+
+在 `memory/danger-guard-config.json` 中添加 `hardening_complete: true` 字段。
+
+### 步骤 4: 确认
+
+向用户报告：
+```
+✅ Danger Guard 安装加固完成
+- 规则已写入 MEMORY.md（每次 session 必读）
+- 规则已写入 AGENTS.md（行为规范层）
+- 三层保护：MEMORY.md + AGENTS.md + SKILL.md
+
+现在即使上下文很长或命令不完整，rm 类命令都会被拦截。
+```
 
 ## Onboarding 流程
 
