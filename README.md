@@ -136,6 +136,25 @@ cp -r danger-guard ~/.openclaw/skills/
 
 Danger Guard activates automatically on first use and walks you through setup.
 
+### Post-Install Hardening (v1.1.0 — Automatic)
+
+After installation, Danger Guard automatically writes interception rules into your agent's mandatory-read files:
+
+| Target File | What Gets Written | Why |
+|-------------|-------------------|-----|
+| `MEMORY.md` | Danger keyword shortcuts at the top | Loaded every session, highest priority |
+| `AGENTS.md` | Full keyword trigger list | Behavior rules layer |
+| `danger-guard-config.json` | `hardening_complete: true` | Marks hardening as done |
+
+This ensures interception works even when the agent doesn't actively load the Skill. No manual action needed — it happens automatically on first run after install.
+
+```
+✅ Danger Guard 安装加固完成
+- 规则已写入 MEMORY.md（每次 session 必读）
+- 规则已写入 AGENTS.md（行为规范层）
+- 三层保护：MEMORY.md + AGENTS.md + SKILL.md
+```
+
 ### Onboarding
 
 The first time Danger Guard detects a dangerous command, it runs through setup:
@@ -182,27 +201,41 @@ Full installation guide: [INSTALL.md](INSTALL.md)
 
 ## Protection Layers
 
-Danger Guard provides two complementary layers of protection:
+Danger Guard provides **three layers** of protection:
 
 ```
-┌─────────────────────────────────────────┐
-│  Layer 1: AI Agent Protection           │
-│  (OpenClaw Skill / Claude Code / etc.)  │
-│                                         │
-│  Intercepts dangerous commands when     │
-│  sent through AI tools and chat         │
-│  platforms                              │
-├─────────────────────────────────────────┤
-│  Layer 2: System-Level Protection       │
-│  (Shell Wrapper — optional)             │
-│                                         │
-│  Intercepts ALL terminal commands,      │
-│  regardless of who or what runs them    │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│  Layer 0: Hardened Memory (Post-Install)     │
+│  (MEMORY.md + AGENTS.md)                     │
+│                                              │
+│  Danger command keywords written directly    │
+│  into the agent's mandatory-read files.      │
+│  Ensures interception even if the agent      │
+│  doesn't actively load the Skill.            │
+├──────────────────────────────────────────────┤
+│  Layer 1: AI Agent Protection                │
+│  (OpenClaw Skill / Claude Code / etc.)       │
+│                                              │
+│  Intercepts dangerous commands when          │
+│  sent through AI tools and chat platforms    │
+├──────────────────────────────────────────────┤
+│  Layer 2: System-Level Protection            │
+│  (Shell Wrapper — optional)                  │
+│                                              │
+│  Intercepts ALL terminal commands,           │
+│  regardless of who or what runs them         │
+└──────────────────────────────────────────────┘
 ```
 
-| Layer | What It Protects | Setup |
-|-------|-----------------|-------|
+### Why Three Layers?
+
+Skills are passive documents — they only work when the agent actively loads them. If the agent's attention is occupied (long context, incomplete command, unrelated topic), it may not load the Skill, and interception fails.
+
+**Post-Install Hardening** (new in v1.1.0) solves this by writing danger command keywords directly into `MEMORY.md` and `AGENTS.md` — files the agent reads every single session. This guarantees interception regardless of whether the Skill is loaded.
+
+| Layer | What It Protects | Guarantee |
+|-------|-----------------|----------|
+| **Hardened Memory** | Forces agent to recognize danger keywords | Every session, always loaded |
 | **AI Agent** | Commands from chat (Feishu, Telegram, etc.) | Auto-activates with skill install |
 | **AI Tools** | Commands from Claude Code, Codex, Cursor | Copy config files |
 | **Shell Wrapper** | ALL terminal commands (system-wide) | Optional during onboarding |
@@ -294,4 +327,4 @@ MIT
 
 ---
 
-Your AI's last line of defense.
+Your AI's last line of defense. Now with three-layer hardening.
