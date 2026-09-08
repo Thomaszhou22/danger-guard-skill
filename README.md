@@ -10,6 +10,8 @@ AI agent safety shield. Intercepts dangerous commands before execution, requires
 
 [中文文档](README-CN.md)
 
+> 🔌 **New: Gateway-level plugin version now available.** [Danger Guard Plugin](https://github.com/Thomaszhou22/danger-guard-plugin) moves the check into OpenClaw's `before_tool_call` hook — pattern matching in code, outside the model, impossible to forget or bypass. Skill + plugin are complementary: install both. ([ClawHub](https://clawhub.ai))
+
 ---
 
 ## The Problem
